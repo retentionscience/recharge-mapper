@@ -1,0 +1,148 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
+# Dependencies
+import sys
+import paramiko
+import json
+import csv
+import requests 
+import hashlib
+from datetime import datetime
+from datetime import timedelta
+
+RUN_HISTORICAL = False
+
+# ReSci SFTP Credentials
+API_USER = "your-api-key"
+API_PASS = "your-api-pass"
+
+# ReCharge API Token
+RECHARGE_KEY  = "Recharge-api-key"
+RECHARGE_URL  = "https://api.rechargeapps.com/"
+
+HEADERS = {"X-Recharge-Access-Token": RECHARGE_KEY }
+
+# Helper Functions
+
+# Md5 Hash Email
+def md5_record_id(email):
+	md5hash_record_id = hashlib.md5()
+	md5hash_record_id.update(email.lower())
+	return md5hash_record_id.hexdigest()
+
+# Get Shopify Customer Id
+def get_shopify_customer_id(customer_id):
+	result = requests.get(RECHARGE_URL + "customers/%s" %(customer_id), headers = HEADERS)
+	customer = json.loads(result.text)
+	user_record_id = customer['customer']['shopify_customer_id']
+	return user_record_id if user_record_id else md5_record_id(customer['customer']['email'])
+
+# Get Subscription Data
+def get_subscriptions(start_date, end_date, page):
+	result = requests.get(RECHARGE_URL + "subscriptions?updated_at_min=%s&updated_at_max=%s&page=%s" %(str(start_date.strftime("%Y-%m-%dT%H:%M:%S")), str(end_date.strftime("%Y-%m-%dT%H:%M:%S")), page), headers = HEADERS)
+	subscriptions = json.loads(result.text)
+	return subscriptions['subscriptions']
+
+def is_churned(status):
+	return int(status == 'CANCELLED')
+
+# Trials are managed differently per business. Please adjust logic accordingly
+def is_trial(subscription):
+	if subscription['next_charge_scheduled_at'] == None:
+		return 0
+
+	# Note: ReCharge suggest using charge_delay to track trial subscriptions
+	#				Feel free to modify this for your own business case.
+	charge_delay = None
+	properties = subscription['properties']
+	if properties == None:
+		return 0
+	else:
+		for property in properties:
+			if property['name'] == 'charge_delay':
+				charge_delay = property['value']
+				break
+
+		if charge_delay == None:
+			return 0
+		else:
+			created_at = datetime.strptime(subscription['created_at'], '%Y-%m-%dT%H:%M:%S')
+			next_charge_scheduled_at = datetime.strptime(subscription['next_charge_scheduled_at'], '%Y-%m-%dT%H:%M:%S')
+			first_nontrial_charge_date = created_at + timedelta(days=charge_delay)
+			return int(next_charge_scheduled_at <= first_nontrial_charge_date) 
+
+def datetime_to_string(dt):
+	if dt is None:
+		return None
+	for fmt in ('%Y-%m-%dT%H:%M:%S', '%Y-%m-%d %H:%M:%S'):
+		try:
+			return str(datetime.strptime(dt, fmt))
+		except ValueError:
+			pass
+	raise ValueError('no valid date format found')
+
+def create_header():
+	return ['record_id', 'user_record_id', 'status', 'item_record_id', 'started_at', 'trial', 'churned', 'canceled_at']
+
+def create_subscription_row(subscription):
+	return {
+		'record_id': subscription['id'],
+		'user_record_id': get_shopify_customer_id(subscription['customer_id']),
+		'status': str(subscription['status']),
+		'item_record_id': subscription['shopify_variant_id'],
+		'started_at': datetime_to_string(subscription['created_at']),
+		'trial': is_trial(subscription),
+		'churned': is_churned(subscription['status']),
+		'canceled_at': datetime_to_string(subscription['cancelled_at'])
+	}
+
+def create_tsv(file_name):
+	today = datetime.utcnow()
+	two_days_ago = today - timedelta(days=2) if RUN_HISTORICAL is False else datetime(1950, 1, 1, 0, 0, 0)
+	page = 1
+
+	with open(file_name, 'wb') as csvfile:
+		writer = csv.DictWriter(csvfile, create_header(), delimiter='\t')
+
+		writer.writeheader()
+
+		# Retrieves Subscriptions updated in the past 48 hour and maps them into a .tsv
+		subscriptions = get_subscriptions(two_days_ago, today,page)
+
+		while len(subscriptions) != 0:
+			for subscription in subscriptions:
+				writer.writerow(create_subscription_row(subscription))
+			page += 1
+			subscriptions = get_subscriptions(two_days_ago, today,page)
+
+
+def main():
+	diff_file_name = 'subscriptions_%s.tsv' %(str(datetime.utcnow().strftime("%Y-%m-%d_%H:%M"))) if RUN_HISTORICAL is False else 'subscriptions_hist.tsv'
+
+	create_tsv(diff_file_name)
+
+	try:
+		# Open SFTP
+
+		# Open a transport
+		transport = paramiko.Transport(('sftp1.retentionscience.com', 22))
+
+		# Auth
+		transport.connect(username = API_USER, password = API_PASS)
+
+		# Go!
+		sftp = paramiko.SFTPClient.from_transport(transport)
+
+		# print sftp.listdir('.')
+		sftp.put(diff_file_name, diff_file_name)
+		# print sftp.listdir('.')
+
+	finally:
+		# Close
+		sftp.close()
+		transport.close()
+
+# Script Starts Here
+
+if __name__ == "__main__": main()
