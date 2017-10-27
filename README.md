@@ -2,10 +2,6 @@
 
 This script will call the ReCharge API ([documentations](https://developer.rechargepayments.com/?python#introduction)) and retrieve ReCharge subscription data and generate a subscription .tsv [file](https://s3.amazonaws.com/rsapi-production/onboarding/docs/FTP-Setup.html#header-subscriptions) which then will be automatically uploaded to a SFTP server (Retention Science will provide you credentials to your SFTP server)
 
-## Getting Started
-
-These instructions will get you a copy of the project up and running on your local machine for development and testing purposes. See deployment for notes on how to deploy the project on a live system.
-
 ### Prerequisites
 For you to retrieve your ReCharge Data, you will need to request your [ReCharge API Token](http://support.rechargepayments.com/article/551-generate-an-api-token)
 
