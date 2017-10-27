@@ -16,6 +16,8 @@ RUN_HISTORICAL = False
 # ReSci SFTP Credentials
 API_USER = "your-api-key"
 API_PASS = "your-api-pass"
+API_URL = "sftp1.retentionscience.com"
+PORT = 22
 
 # ReCharge API Token
 RECHARGE_KEY  = "Recharge-api-key"
@@ -126,7 +128,7 @@ def main():
 		# Open SFTP
 
 		# Open a transport
-		transport = paramiko.Transport(('sftp1.retentionscience.com', 22))
+		transport = paramiko.Transport((API_URL, PORT))
 
 		# Auth
 		transport.connect(username = API_USER, password = API_PASS)
