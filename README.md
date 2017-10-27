@@ -17,11 +17,12 @@ First you will need to setup the python environment. Follow instructions [here](
 
 Then install the dependencies using pip.
 
-If you're having issues importing requests. Type in 
+If you're having issues importing requests. Type your terminal in 
 ```
 pip install pyopenssl ndg-httpsclient pyasn1
 ```
-You will need to add your crendentials
+
+You will need to add your crendentials in recharge_mapper.py
 ```
 # ReSci SFTP Credentials
 API_USER = "your-api-key"
