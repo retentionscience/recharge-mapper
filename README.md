@@ -39,6 +39,8 @@ RUN_HISTORICAL = True
 And run the script manually in terminal.
 
 ### Set Daily Subscription Feed
+Note: This script will retrieve updated subscriptions in the past 48 hours. This ensures there are no data gap between daily uploads. Retention Science has de-duplicating logic internally so this will not result in duplicate entries.
+
 Prior to setting up the daily cron job. You will need to set RUN_HISTORICAL = False.
 
 If you wished to have a script named /your-path/recharge_mapper.py run every day at 3am, your crontab entry would look like as follows. 
