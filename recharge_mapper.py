@@ -69,9 +69,9 @@ def is_trial(subscription):
 		if charge_delay == None:
 			return 0
 		else:
-			created_at = datetime.strptime(subscription['created_at'], '%Y-%m-%dT%H:%M:%S')
-			next_charge_scheduled_at = datetime.strptime(subscription['next_charge_scheduled_at'], '%Y-%m-%dT%H:%M:%S')
-			first_nontrial_charge_date = created_at + timedelta(days=charge_delay)
+			created_at = datetime.strptime(subscription['created_at'], '%Y-%m-%dT%H:%M:%S').date()
+			next_charge_scheduled_at = datetime.strptime(subscription['next_charge_scheduled_at'], '%Y-%m-%dT%H:%M:%S').date()
+			first_nontrial_charge_date = created_at + timedelta(days=int(charge_delay))
 			return int(next_charge_scheduled_at <= first_nontrial_charge_date) 
 
 def datetime_to_string(dt):
