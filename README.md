@@ -17,7 +17,7 @@ First you will need to setup the python environment. Follow instructions [here](
 
 Then install the dependencies using pip.
 
-If you're having issues importing requests. Type your terminal in 
+If you're having issues importing requests. In terminal, type
 ```
 pip install pyopenssl ndg-httpsclient pyasn1
 ```
