@@ -8,8 +8,10 @@ import json
 import csv
 import requests 
 import hashlib
+import time
 from datetime import datetime
 from datetime import timedelta
+from ratelimit import rate_limited
 
 RUN_HISTORICAL = False
 
@@ -27,6 +29,20 @@ HEADERS = {"X-Recharge-Access-Token": RECHARGE_KEY }
 
 # Helper Functions
 
+# Call ReCharge API
+def call_recharge_api(url):
+	page = ''
+	while page == '':
+		try:
+			page = requests.get(url, headers = HEADERS )
+		except:
+			print 'Connection refused by the server..'
+			print 'Retrying in 5 seconds'
+			time.sleep(5)
+			print 'Attempting to reconnect to server'
+			continue
+	return page
+
 # Md5 Hash Email
 def md5_record_id(email):
 	md5hash_record_id = hashlib.md5()
@@ -34,15 +50,17 @@ def md5_record_id(email):
 	return md5hash_record_id.hexdigest()
 
 # Get Shopify Customer Id
+@rate_limited(1,2)
 def get_shopify_customer_id(customer_id):
-	result = requests.get(RECHARGE_URL + "customers/%s" %(customer_id), headers = HEADERS)
+	result = call_recharge_api(RECHARGE_URL + "customers/%s" %(customer_id))
 	customer = json.loads(result.text)
 	user_record_id = customer['customer']['shopify_customer_id']
 	return user_record_id if user_record_id else md5_record_id(customer['customer']['email'])
 
 # Get Subscription Data
+@rate_limited(1)
 def get_subscriptions(start_date, end_date, page):
-	result = requests.get(RECHARGE_URL + "subscriptions?updated_at_min=%s&updated_at_max=%s&page=%s" %(str(start_date.strftime("%Y-%m-%dT%H:%M:%S")), str(end_date.strftime("%Y-%m-%dT%H:%M:%S")), page), headers = HEADERS)
+	result = call_recharge_api(RECHARGE_URL + "subscriptions?updated_at_min=%s&updated_at_max=%s&page=%s" %(str(start_date.strftime("%Y-%m-%dT%H:%M:%S")), str(end_date.strftime("%Y-%m-%dT%H:%M:%S")), page))
 	subscriptions = json.loads(result.text)
 	return subscriptions['subscriptions']
 
@@ -55,7 +73,7 @@ def is_trial(subscription):
 		return 0
 
 	# Note: ReCharge suggest using charge_delay to track trial subscriptions
-	#				Feel free to modify this for your own business case.
+	#	Feel free to modify this for your own business case.
 	charge_delay = None
 	properties = subscription['properties']
 	if properties == None:
@@ -114,7 +132,9 @@ def create_tsv(file_name):
 
 		while len(subscriptions) != 0:
 			for subscription in subscriptions:
-				writer.writerow(create_subscription_row(subscription))
+				print '.',
+                		subscription_row = create_subscription_row(subscription)
+                		writer.writerow(subscription_row)
 			page += 1
 			subscriptions = get_subscriptions(two_days_ago, today,page)
 
@@ -122,7 +142,9 @@ def create_tsv(file_name):
 def main():
 	diff_file_name = 'subscriptions_%s.tsv' %(str(datetime.utcnow().strftime("%Y-%m-%d_%H:%M"))) if RUN_HISTORICAL is False else 'subscriptions_hist.tsv'
 
-	create_tsv(diff_file_name)
+	print 'Generating user_subscription file'
+    	create_tsv(diff_file_name)
+    	print 'Generated user_subscription file'
 
 	try:
 		# Open SFTP
@@ -136,14 +158,15 @@ def main():
 		# Go!
 		sftp = paramiko.SFTPClient.from_transport(transport)
 
-		# print sftp.listdir('.')
-		sftp.put(diff_file_name, diff_file_name)
-		# print sftp.listdir('.')
+		print 'Uploading subscription file to SFTP'
+        	sftp.put(diff_file_name, diff_file_name)
+        	print 'Uploaded subscription file to SFTP'
 
 	finally:
 		# Close
 		sftp.close()
 		transport.close()
+		print 'ReCharge Mapper Executed'
 
 # Script Starts Here
 
