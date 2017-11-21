@@ -133,8 +133,8 @@ def create_tsv(file_name):
 		while len(subscriptions) != 0:
 			for subscription in subscriptions:
 				print '.',
-                subscription_row = create_subscription_row(subscription)
-                writer.writerow(subscription_row)
+                		subscription_row = create_subscription_row(subscription)
+                		writer.writerow(subscription_row)
 			page += 1
 			subscriptions = get_subscriptions(two_days_ago, today,page)
 
@@ -143,8 +143,8 @@ def main():
 	diff_file_name = 'subscriptions_%s.tsv' %(str(datetime.utcnow().strftime("%Y-%m-%d_%H:%M"))) if RUN_HISTORICAL is False else 'subscriptions_hist.tsv'
 
 	print 'Generating user_subscription file'
-    create_tsv(diff_file_name)
-    print 'Generated user_subscription file'
+    	create_tsv(diff_file_name)
+    	print 'Generated user_subscription file'
 
 	try:
 		# Open SFTP
@@ -159,8 +159,8 @@ def main():
 		sftp = paramiko.SFTPClient.from_transport(transport)
 
 		print 'Uploading subscription file to SFTP'
-        sftp.put(diff_file_name, diff_file_name)
-        print 'Uploaded subscription file to SFTP'
+        	sftp.put(diff_file_name, diff_file_name)
+        	print 'Uploaded subscription file to SFTP'
 
 	finally:
 		# Close
