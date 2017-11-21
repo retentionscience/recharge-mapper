@@ -73,7 +73,7 @@ def is_trial(subscription):
 		return 0
 
 	# Note: ReCharge suggest using charge_delay to track trial subscriptions
-	#				Feel free to modify this for your own business case.
+	#	Feel free to modify this for your own business case.
 	charge_delay = None
 	properties = subscription['properties']
 	if properties == None:
