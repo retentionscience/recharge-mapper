@@ -140,7 +140,7 @@ def create_tsv(file_name):
 
 
 def main():
-	diff_file_name = 'subscriptions_%s.tsv' %(str(datetime.utcnow().strftime("%Y-%m-%d_%H:%M"))) if RUN_HISTORICAL is False else 'subscriptions_hist.tsv'
+	diff_file_name = 'user_subscriptions_%s.tsv' %(str(datetime.utcnow().strftime("%Y-%m-%d_%H:%M"))) if RUN_HISTORICAL is False else 'user_subscriptions_hist.tsv'
 
 	print 'Generating user_subscription file'
     	create_tsv(diff_file_name)
