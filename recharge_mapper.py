@@ -9,6 +9,7 @@ import csv
 import requests 
 import hashlib
 import time
+import pytz
 from datetime import datetime
 from datetime import timedelta
 from ratelimit import rate_limited
@@ -98,7 +99,16 @@ def datetime_to_string(dt):
 		return None
 	for fmt in ('%Y-%m-%dT%H:%M:%S', '%Y-%m-%d %H:%M:%S'):
 		try:
-			dt_formatted = datetime.strptime(dt, fmt) + timedelta(hours = 5) if CONVERT_FROM_EST is True else datetime.strptime(dt, fmt)
+			if CONVERT_FROM_EST:
+				utc = pytz.utc
+				eastern = pytz.timezone('US/Eastern')
+				
+				date = datetime.strptime(dt, fmt)
+				date_eastern = eastern.localize(date,is_dst=None)
+				date_utc = date_eastern.astimezone(utc)
+				dt_formatted = datetime.strptime(date_utc.strftime(fmt), fmt)
+			else:
+				dt_formatted = datetime.strptime(dt, fmt)
 			return str(dt_formatted)
 		except ValueError:
 			pass
