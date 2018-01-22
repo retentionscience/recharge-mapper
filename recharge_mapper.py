@@ -14,6 +14,7 @@ from datetime import timedelta
 from ratelimit import rate_limited
 
 RUN_HISTORICAL = False
+CONVERT_FROM_EST = True
 
 # ReSci SFTP Credentials
 API_USER = "your-api-key"
@@ -97,7 +98,8 @@ def datetime_to_string(dt):
 		return None
 	for fmt in ('%Y-%m-%dT%H:%M:%S', '%Y-%m-%d %H:%M:%S'):
 		try:
-			return str(datetime.strptime(dt, fmt))
+			dt_formatted = datetime.strptime(dt, fmt) + timedelta(hours = 5) if CONVERT_FROM_EST is True else datetime.strptime(dt, fmt)
+			return str(dt_formatted)
 		except ValueError:
 			pass
 	raise ValueError('no valid date format found')
