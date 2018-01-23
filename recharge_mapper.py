@@ -104,7 +104,11 @@ def datetime_to_string(dt):
 				eastern = pytz.timezone('US/Eastern')
 				
 				date = datetime.strptime(dt, fmt)
-				date_eastern = eastern.localize(date,is_dst=None)
+				try:
+				    date_eastern = make_aware(date,eastern)
+				except (pytz.NonExistentTimeError, pytz.AmbiguousTimeError):
+				    date_eastern = make_aware(datetime.fromtimestamp(date) + timedelta(hours=1), eastern)
+
 				date_utc = date_eastern.astimezone(utc)
 				dt_formatted = datetime.strptime(date_utc.strftime(fmt), fmt)
 			else:
