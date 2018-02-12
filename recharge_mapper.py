@@ -56,7 +56,7 @@ def md5_record_id(email):
 def get_shopify_customer_id(customer_id):
 	result = call_recharge_api(RECHARGE_URL + "customers/%s" %(customer_id))
 	customer = json.loads(result.text)
-	if 'error' in customer:
+	if 'errors' in customer:
 		return ''
 	user_record_id = customer['customer']['shopify_customer_id']
 	return user_record_id if user_record_id else md5_record_id(customer['customer']['email'])
