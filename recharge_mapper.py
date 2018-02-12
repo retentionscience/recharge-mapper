@@ -56,6 +56,8 @@ def md5_record_id(email):
 def get_shopify_customer_id(customer_id):
 	result = call_recharge_api(RECHARGE_URL + "customers/%s" %(customer_id))
 	customer = json.loads(result.text)
+	if 'error' in customer:
+		return ''
 	user_record_id = customer['customer']['shopify_customer_id']
 	return user_record_id if user_record_id else md5_record_id(customer['customer']['email'])
 
@@ -105,10 +107,9 @@ def datetime_to_string(dt):
 				
 				date = datetime.strptime(dt, fmt)
 				try:
-				    date_eastern = make_aware(date,eastern)
+					date_eastern = make_aware(date,eastern)
 				except (pytz.NonExistentTimeError, pytz.AmbiguousTimeError):
-				    date_eastern = make_aware(datetime.fromtimestamp(date) + timedelta(hours=1), eastern)
-
+					return ''
 				date_utc = date_eastern.astimezone(utc)
 				dt_formatted = datetime.strptime(date_utc.strftime(fmt), fmt)
 			else:
