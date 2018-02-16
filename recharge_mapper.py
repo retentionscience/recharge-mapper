@@ -118,6 +118,22 @@ def datetime_to_string(dt):
 		except ValueError:
 			pass
 	raise ValueError('no valid date format found')
+	
+# Needed for handling pytz exception
+def make_aware(value, timezone):
+    """
+    Makes a naive datetime.datetime in a given time zone aware.
+    """
+    if hasattr(timezone, 'localize'):
+        # This method is available for pytz time zones.
+        return timezone.localize(value, is_dst=None)
+    else:
+        # Check that we won't overwrite the timezone of an aware datetime.
+        if is_aware(value):
+            raise ValueError(
+                "make_aware expects a naive datetime, got %s" % value)
+        # This may be wrong around DST changes!
+        return value.replace(tzinfo=timezone)
 
 def create_header():
 	return ['record_id', 'user_record_id', 'status', 'item_record_id', 'started_at', 'trial', 'churned', 'canceled_at']
