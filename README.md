@@ -19,7 +19,7 @@ Then install the dependencies using pip.
 
 If you're having issues importing requests. In terminal, type
 ```
-pip install pyopenssl ndg-httpsclient pyasn1
+pip install paramiko pytz ratelimit backoff
 ```
 
 You will need to add your crendentials in recharge_mapper.py

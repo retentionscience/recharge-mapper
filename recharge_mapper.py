@@ -10,9 +10,10 @@ import requests
 import hashlib
 import time
 import pytz
-from datetime import datetime
-from datetime import timedelta
-from ratelimit import rate_limited
+from datetime import datetime, timedelta
+from ratelimit import limits, RateLimitException
+from backoff import on_exception, expo
+
 
 RUN_HISTORICAL = False
 CONVERT_FROM_EST = True
@@ -32,6 +33,8 @@ HEADERS = {"X-Recharge-Access-Token": RECHARGE_KEY }
 # Helper Functions
 
 # Call ReCharge API
+@on_exception(expo, RateLimitException, max_tries=8)
+@limits(calls=1, period=1) # 1 call per second
 def call_recharge_api(url):
 	page = ''
 	while page == '':
@@ -52,7 +55,6 @@ def md5_record_id(email):
 	return md5hash_record_id.hexdigest()
 
 # Get Shopify Customer Id
-@rate_limited(1,2)
 def get_shopify_customer_id(customer_id):
 	result = call_recharge_api(RECHARGE_URL + "customers/%s" %(customer_id))
 	customer = json.loads(result.text)
@@ -62,7 +64,6 @@ def get_shopify_customer_id(customer_id):
 	return user_record_id if user_record_id else md5_record_id(customer['customer']['email'])
 
 # Get Subscription Data
-@rate_limited(1)
 def get_subscriptions(start_date, end_date, page):
 	result = call_recharge_api(RECHARGE_URL + "subscriptions?updated_at_min=%s&updated_at_max=%s&page=%s" %(str(start_date.strftime("%Y-%m-%dT%H:%M:%S")), str(end_date.strftime("%Y-%m-%dT%H:%M:%S")), page))
 	subscriptions = json.loads(result.text)
@@ -173,7 +174,7 @@ def create_tsv(file_name):
 
 
 def main():
-	diff_file_name = 'user_subscriptions_%s.tsv' %(str(datetime.utcnow().strftime("%Y-%m-%d_%H:%M"))) if RUN_HISTORICAL is False else 'user_subscriptions_hist.tsv'
+	diff_file_name = 'user_subscriptions_%s.tsv' %(str(datetime.utcnow().strftime("%Y-%m-%d_%H%M"))) if RUN_HISTORICAL is False else 'user_subscriptions_hist.tsv'
 
 	print 'Generating user_subscription file'
     	create_tsv(diff_file_name)
